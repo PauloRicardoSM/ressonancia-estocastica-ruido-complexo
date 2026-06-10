@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ressonância Estocástica & Ruído Complexo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a14;
+    --bg2: #0a1220;
+    --bg3: #0f1a2e;
+    --accent: #00e5ff;
+    --accent2: #7b2fff;
+    --accent3: #ff6b35;
+    --text: #e8f0ff;
+    --text2: #8a9ec0;
+    --grid: rgba(0,229,255,0.06);
+    --card: rgba(10,18,32,0.9);
+    --border: rgba(0,229,255,0.15);
+    --glow: rgba(0,229,255,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, var(--grid) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, var(--grid) 40px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hero {
+    position: relative;
+    z-index: 1;
+    padding: 80px 40px 60px;
+    text-align: center;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .hero-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+
+  h1 {
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 60%, var(--accent3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--text2);
+    line-height: 1.7;
+    max-width: 600px;
+    margin: 0 auto 40px;
+    font-weight: 400;
+  }
+
+  .nav-pills {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .pill {
+    background: rgba(0,229,255,0.08);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .pill:hover, .pill.active {
+    background: rgba(0,229,255,0.2);
+    border-color: var(--accent);
+    box-shadow: 0 0 16px var(--glow);
+  }
+
+  .sections {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px 80px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .sim-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 40px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sim-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), transparent);
+  }
+
+  .sim-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .sim-desc {
+    font-size: 0.88rem;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(0,229,255,0.08);
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ctrl-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text2);
+    text-transform: uppercase;
+  }
+
+  .ctrl-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(0,229,255,0.15);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--glow);
+  }
+
+  .metrics {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .metric {
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.1);
+    border-radius: 8px;
+    padding: 10px 16px;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .metric-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text2);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .metric-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 640px) {
+    .two-col { grid-template-columns: 1fr; }
+    .hero { padding: 50px 20px 40px; }
+    .sim-card { padding: 20px; }
+  }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text2);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .btn {
+    background: rgba(0,229,255,0.1);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+  }
+
+  .btn:hover {
+    background: rgba(0,229,255,0.2);
+    box-shadow: 0 0 12px var(--glow);
+  }
+
+  .info-box {
+    background: rgba(123,47,255,0.08);
+    border: 1px solid rgba(123,47,255,0.2);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: rgba(190,160,255,0.9);
+    line-height: 1.7;
+  }
+
+  .section-header {
+    text-align: center;
+    margin: 60px 0 32px;
+  }
+
+  .section-header h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .section-header p {
+    color: var(--text2);
+    font-size: 0.9rem;
+    font-family: 'Space Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-tag">// simulação interativa</div>
+  <h1>Ressonância Estocástica & Ruído Complexo</h1>
+  <p class="hero-sub">Explore como o ruído aleatório pode paradoxalmente amplificar sinais fracos e otimizar sistemas dinâmicos não-lineares</p>
+  <div class="nav-pills">
+    <div class="pill active" onclick="scrollTo(0)">Ressonância SR</div>
+    <div class="pill" onclick="scrollTo(1)">Poço Duplo</div>
+    <div class="pill" onclick="scrollTo(2)">Ruído Colorido</div>
+    <div class="pill" onclick="scrollTo(3)">SNR Ótimo</div>
+  </div>
+</div>
+
+<div class="sections" id="sections">
+
+  <!-- SIM 1: Stochastic Resonance Classic -->
+  <div class="sim-card" id="sim0">
+    <div class="sim-title">↯ Ressonância Estocástica Clássica</div>
+    <div class="sim-desc">// sinal subthreshold + ruído gaussiano → detecção amplificada</div>
+
+    <div class="two-col">
+      <div>
+        <canvas id="c1signal" height="120"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#00e5ff"></div>Sinal + Ruído</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(255,107,53,0.7)"></div>Limiar</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7b2fff;width:6px;height:6px;border-radius:50%"></div>Cruzamentos</div>
+        </div>
+      </div>
+      <div>
+        <canvas id="c1output" height="120"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#7b2fff"></div>Saída Binária</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(0,229,255,0.4)"></div>Sinal Original</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Amplitude Sinal</div>
+        <input type="range" id="sr_amp" min="0.1" max="1.5" step="0.05" value="0.6">
+        <div class="ctrl-value" id="sr_amp_v">0.60</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Intensidade Ruído σ</div>
+        <input type="range" id="sr_noise" min="0.01" max="2.0" step="0.05" value="0.5">
+        <div class="ctrl-value" id="sr_noise_v">0.50</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Frequência Hz</div>
+        <input type="range" id="sr_freq" min="0.5" max="5" step="0.5" value="1.5">
+        <div class="ctrl-value" id="sr_freq_v">1.5</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Limiar θ</div>
+        <input type="range" id="sr_thresh" min="0.3" max="1.8" step="0.05" value="0.9">
+        <div class="ctrl-value" id="sr_thresh_v">0.90</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">SNR (dB)</div>
+        <div class="metric-value" id="sr_snr">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Cruzamentos/s</div>
+        <div class="metric-value" id="sr_cross">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Detecções</div>
+        <div class="metric-value" id="sr_det">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Falsos Pos.</div>
+        <div class="metric-value" id="sr_fp">–</div>
+      </div>
+    </div>
+
+    <div class="info-box">⬡ TEORIA: Quando o ruído é muito baixo, o sinal subthreshold nunca cruza o limiar. Muito alto e os cruzamentos são aleatórios. Existe um valor ÓTIMO de ruído σ* onde a correlação sinal-saída é maximizada — esta é a ressonância estocástica.</div>
+  </div>
+
+  <!-- SIM 2: Double Well Potential -->
+  <div class="sim-card" id="sim1">
+    <div class="sim-title">⬡ Potencial de Poço Duplo (Kramers)</div>
+    <div class="sim-desc">// dinâmica de Langevin: dx = -dU/dx·dt + σ·dW — transições estocásticas</div>
+
+    <div class="two-col">
+      <div>
+        <canvas id="c2well" height="200"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#00e5ff"></div>U(x) = x⁴ − 2x²</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div>Posição x(t)</div>
+        </div>
+      </div>
+      <div>
+        <canvas id="c2traj" height="200"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#7b2fff"></div>Trajetória x(t)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#00e5ff;opacity:0.5"></div>Força periódica</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Ruído σ (Temperatura)</div>
+        <input type="range" id="dw_noise" min="0.1" max="2.0" step="0.05" value="0.7">
+        <div class="ctrl-value" id="dw_noise_v">0.70</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Força Periódica A</div>
+        <input type="range" id="dw_force" min="0" max="0.8" step="0.02" value="0.2">
+        <div class="ctrl-value" id="dw_force_v">0.20</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Freq. Força Ω</div>
+        <input type="range" id="dw_omega" min="0.1" max="2.0" step="0.1" value="0.5">
+        <div class="ctrl-value" id="dw_omega_v">0.5</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Amortecimento γ</div>
+        <input type="range" id="dw_damp" min="0.1" max="2.0" step="0.1" value="0.5">
+        <div class="ctrl-value" id="dw_damp_v">0.5</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Poço atual</div>
+        <div class="metric-value" id="dw_well">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Transições</div>
+        <div class="metric-value" id="dw_trans">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Taxa Kramers</div>
+        <div class="metric-value" id="dw_kramers">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">⟨x²⟩ variância</div>
+        <div class="metric-value" id="dw_var">–</div>
+      </div>
+    </div>
+
+    <div class="info-box">⬡ KRAMERS: A taxa de escape sobre a barreira ΔU segue r_K = (1/2π)·exp(−ΔU/D), onde D = σ²/2. Para SR ocorrer, a taxa de Kramers deve sincronizar com a frequência da força periódica: r_K ≈ Ω/2π.</div>
+  </div>
+
+  <!-- SIM 3: Colored Noise Types -->
+  <div class="sim-card" id="sim2">
+    <div class="sim-title">◈ Tipos de Ruído Colorido</div>
+    <div class="sim-desc">// taxonomia espectral: branco α=0 / rosa α=1 / vermelho α=2 / azul α=−1</div>
+
+    <canvas id="c3noise" height="180"></canvas>
+    <canvas id="c3psd" height="160" style="margin-top:12px"></canvas>
+
+    <div class="legend" style="margin-top:10px">
+      <div class="legend-item"><div class="legend-dot" style="background:#e0e0e0"></div>Branco (α=0)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff9b54"></div>Rosa (α=1)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4444"></div>Vermelho/Brown (α=2)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#54a0ff"></div>Azul (α=−1)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00e5ff"></div>Violeta (α=−2)</div>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Expoente Espectral α</div>
+        <input type="range" id="cn_alpha" min="-2" max="2" step="0.25" value="0">
+        <div class="ctrl-value" id="cn_alpha_v">0.00 (Branco)</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Amplitude</div>
+        <input type="range" id="cn_amp" min="0.1" max="2.0" step="0.1" value="1.0">
+        <div class="ctrl-value" id="cn_amp_v">1.0</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Comprimento Correlação</div>
+        <input type="range" id="cn_corr" min="1" max="50" step="1" value="10">
+        <div class="ctrl-value" id="cn_corr_v">10</div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Tipo</div>
+        <div class="metric-value" id="cn_type">Branco</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">S(f) ∝</div>
+        <div class="metric-value" id="cn_spec">f⁰</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">RMS</div>
+        <div class="metric-value" id="cn_rms">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">τ_corr</div>
+        <div class="metric-value" id="cn_tau">–</div>
+      </div>
+    </div>
+
+    <div class="info-box">⬡ ESPECTRO: O ruído colorido tem PSD S(f) ∝ 1/fᵅ. α=0 é branco (memórialess), α=1 é rosa (ubíquo em sistemas biológicos), α=2 é browniano. Ruídos com α&gt;0 possuem auto-correlações de longa duração — essencial para SR em sistemas neuronais.</div>
+  </div>
+
+  <!-- SIM 4: SNR vs Noise Curve -->
+  <div class="sim-card" id="sim3">
+    <div class="sim-title">◉ Curva SNR × Ruído — O "Sweet Spot"</div>
+    <div class="sim-desc">// relação sinal-ruído vs intensidade: a assinatura da ressonância estocástica</div>
+
+    <canvas id="c4snr" height="280"></canvas>
+
+    <div class="controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Amplitude Sinal A</div>
+        <input type="range" id="snr_amp" min="0.1" max="1.5" step="0.05" value="0.5">
+        <div class="ctrl-value" id="snr_amp_v">0.50</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Limiar θ</div>
+        <input type="range" id="snr_thresh" min="0.3" max="2.0" step="0.05" value="1.0">
+        <div class="ctrl-value" id="snr_thresh_v">1.00</div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Tipo Não-linearidade</div>
+        <select id="snr_type" style="background:rgba(0,229,255,0.05);border:1px solid var(--border);color:var(--accent);font-family:'Space Mono',monospace;font-size:11px;padding:6px 10px;border-radius:6px;outline:none;width:100%">
+          <option value="threshold">Threshold Degrau</option>
+          <option value="tanh">Tanh Sigmoide</option>
+          <option value="bistable">Biestável</option>
+        </select>
+      </div>
+      <div class="ctrl-group" style="align-self:flex-end">
+        <button class="btn" onclick="recomputeSNR()">↻ Recomputar</button>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">σ* Ótimo</div>
+        <div class="metric-value" id="snr_opt">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">SNR Máx (dB)</div>
+        <div class="metric-value" id="snr_max">–</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Ganho SR</div>
+        <div class="metric-value" id="snr_gain">–</div>
+      </div>
+    </div>
+
+    <div class="legend" style="margin-top:10px">
+      <div class="legend-item"><div class="legend-dot" style="background:#00e5ff"></div>SNR(σ)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff6b35;width:1px;height:12px"></div>σ* ótimo</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7b2fff;opacity:0.4"></div>Zona SR</div>
+    </div>
+
+    <div class="info-box">⬡ ASSINATURA SR: O SNR apresenta um máximo não-trivial para um valor específico de ruído σ* — impossível em sistemas lineares (onde SNR é sempre decrescente com ruído). Este pico é a assinatura inconfundível da Ressonância Estocástica.</div>
+  </div>
+
+</div>
+
+<script>
+// =================== UTILITIES ===================
+function gaussian() {
+  let u = 0, v = 0;
+  while (!u) u = Math.random();
+  while (!v) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+const scrollTo = (i) => {
+  document.getElementById('sim' + i).scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+// =================== SIM 1: SR CLASSIC ===================
+const c1s = document.getElementById('c1signal');
+const c1o = document.getElementById('c1output');
+const ctx1s = c1s.getContext('2d');
+const ctx1o = c1o.getContext('2d');
+
+let sr_t = 0, sr_buffer = [], sr_out_buffer = [], sr_crossings = 0, sr_detections = 0, sr_fp = 0;
+let sr_raf;
+
+function resizeSR() {
+  c1s.width = c1s.offsetWidth * devicePixelRatio;
+  c1s.height = 120 * devicePixelRatio;
+  c1o.width = c1o.offsetWidth * devicePixelRatio;
+  c1o.height = 120 * devicePixelRatio;
+}
+
+function sr_tick() {
+  const amp = parseFloat(document.getElementById('sr_amp').value);
+  const sigma = parseFloat(document.getElementById('sr_noise').value);
+  const freq = parseFloat(document.getElementById('sr_freq').value);
+  const thresh = parseFloat(document.getElementById('sr_thresh').value);
+
+  const N = 600;
+  if (sr_buffer.length === 0) {
+    for (let i = 0; i < N; i++) {
+      const signal = amp * Math.sin(2 * Math.PI * freq * i / N);
+      const noisy = signal + sigma * gaussian();
+      sr_buffer.push({ signal, noisy, thresh });
+      sr_out_buffer.push(noisy > thresh ? 1 : 0);
+    }
+  }
+
+  // Add new sample
+  const signal = amp * Math.sin(2 * Math.PI * freq * sr_t / N);
+  const noisy = signal + sigma * gaussian();
+  const out = noisy > thresh ? 1 : 0;
+  sr_buffer.push({ signal, noisy, thresh });
+  sr_out_buffer.push(out);
+  if (sr_buffer.length > N) { sr_buffer.shift(); sr_out_buffer.shift(); }
+
+  // Count crossings
+  if (sr_out_buffer.length > 1 && sr_out_buffer[sr_out_buffer.length - 1] !== sr_out_buffer[sr_out_buffer.length - 2]) {
+    sr_crossings++;
+    const s = sr_buffer[sr_buffer.length - 1].signal;
+    if (out === 1 && s > 0) sr_detections++;
+    else if (out === 1 && s <= 0) sr_fp++;
+  }
+
+  sr_t++;
+  draw_sr_signal(amp, thresh, sigma, N);
+  draw_sr_output(amp, thresh, N);
+  update_sr_metrics(amp, sigma, freq, thresh);
+
+  sr_raf = requestAnimationFrame(sr_tick);
+}
+
+function draw_sr_signal(amp, thresh, sigma, N) {
+  resizeSR();
+  const W = c1s.width, H = c1s.height;
+  ctx1s.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx1s.fillRect(0, 0, W, H);
+
+  const yc = H / 2;
+  const yscale = (H / 2 - 10) / 2.5;
+
+  // Threshold line
+  ctx1s.strokeStyle = 'rgba(255,107,53,0.7)';
+  ctx1s.lineWidth = 1.5;
+  ctx1s.setLineDash([6, 4]);
+  ctx1s.beginPath();
+  ctx1s.moveTo(0, yc - thresh * yscale);
+  ctx1s.lineTo(W, yc - thresh * yscale);
+  ctx1s.stroke();
+  ctx1s.setLineDash([]);
+
+  // Zero line
+  ctx1s.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx1s.lineWidth = 1;
+  ctx1s.beginPath();
+  ctx1s.moveTo(0, yc);
+  ctx1s.lineTo(W, yc);
+  ctx1s.stroke();
+
+  // Noisy signal
+  ctx1s.strokeStyle = '#00e5ff';
+  ctx1s.lineWidth = 1.5;
+  ctx1s.beginPath();
+  sr_buffer.forEach((d, i) => {
+    const x = (i / N) * W;
+    const y = yc - d.noisy * yscale;
+    i === 0 ? ctx1s.moveTo(x, y) : ctx1s.lineTo(x, y);
+  });
+  ctx1s.stroke();
+
+  // Threshold crossings dots
+  sr_buffer.forEach((d, i) => {
+    if (i > 0 && sr_out_buffer[i] !== sr_out_buffer[i - 1]) {
+      const x = (i / N) * W;
+      const y = yc - thresh * yscale;
+      ctx1s.beginPath();
+      ctx1s.arc(x, y, 4 * devicePixelRatio, 0, Math.PI * 2);
+      ctx1s.fillStyle = '#7b2fff';
+      ctx1s.fill();
+    }
+  });
+
+  // Labels
+  ctx1s.font = `${10 * devicePixelRatio}px Space Mono`;
+  ctx1s.fillStyle = 'rgba(255,107,53,0.9)';
+  ctx1s.fillText('θ = ' + thresh.toFixed(2), 6 * devicePixelRatio, (yc - thresh * yscale - 6 * devicePixelRatio));
+}
+
+function draw_sr_output(amp, thresh, N) {
+  const W = c1o.width, H = c1o.height;
+  ctx1o.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx1o.fillRect(0, 0, W, H);
+
+  const H1 = H * 0.2, H0 = H * 0.8;
+
+  // Draw soft original signal guide
+  ctx1o.strokeStyle = 'rgba(0,229,255,0.25)';
+  ctx1o.lineWidth = 1;
+  ctx1o.beginPath();
+  sr_buffer.forEach((d, i) => {
+    const x = (i / N) * W;
+    const y = lerp(H1, H0, (1 - d.signal / (amp * 1.5 + 0.1)) / 2);
+    i === 0 ? ctx1o.moveTo(x, y) : ctx1o.lineTo(x, y);
+  });
+  ctx1o.stroke();
+
+  // Draw binary output
+  ctx1o.strokeStyle = '#7b2fff';
+  ctx1o.lineWidth = 2;
+  ctx1o.beginPath();
+  sr_out_buffer.forEach((v, i) => {
+    const x = (i / N) * W;
+    const y = v === 1 ? H1 : H0;
+    if (i === 0) ctx1o.moveTo(x, y);
+    else {
+      if (sr_out_buffer[i] !== sr_out_buffer[i - 1]) {
+        ctx1o.lineTo(x, v === 1 ? H0 : H1);
+      }
+      ctx1o.lineTo(x, y);
+    }
+  });
+  ctx1o.stroke();
+
+  ctx1o.font = `${9 * devicePixelRatio}px Space Mono`;
+  ctx1o.fillStyle = 'rgba(123,47,255,0.8)';
+  ctx1o.fillText('HIGH', 4 * devicePixelRatio, H1 + 12 * devicePixelRatio);
+  ctx1o.fillText('LOW', 4 * devicePixelRatio, H0 - 4 * devicePixelRatio);
+}
+
+function update_sr_metrics(amp, sigma, freq, thresh) {
+  const snr = amp > thresh - sigma ? 10 * Math.log10(amp * amp / (sigma * sigma + 0.001)) : -20 + sigma * -10;
+  document.getElementById('sr_snr').textContent = snr.toFixed(1) + ' dB';
+  document.getElementById('sr_cross').textContent = Math.round(sr_crossings / (sr_t / 60 + 1));
+  document.getElementById('sr_det').textContent = sr_detections;
+  document.getElementById('sr_fp').textContent = sr_fp;
+}
+
+['sr_amp','sr_noise','sr_freq','sr_thresh'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    document.getElementById(id + '_v').textContent = parseFloat(this.value).toFixed(2);
+    sr_crossings = 0; sr_detections = 0; sr_fp = 0; sr_t = 0; sr_buffer = []; sr_out_buffer = [];
+  });
+});
+
+// =================== SIM 2: DOUBLE WELL ===================
+const c2w = document.getElementById('c2well');
+const c2t = document.getElementById('c2traj');
+const ctx2w = c2w.getContext('2d');
+const ctx2t = c2t.getContext('2d');
+
+let dw_x = -1.0, dw_v = 0, dw_time = 0, dw_traj = [], dw_trans = 0, dw_prev_well = -1, dw_xhist = [];
+let dw_raf;
+
+function U(x) { return x * x * x * x - 2 * x * x; }
+function dU(x) { return 4 * x * x * x - 4 * x; }
+
+function draw_well() {
+  const sigma = parseFloat(document.getElementById('dw_noise').value);
+  const force = parseFloat(document.getElementById('dw_force').value);
+  const omega = parseFloat(document.getElementById('dw_omega').value);
+
+  const W = c2w.width = c2w.offsetWidth * devicePixelRatio;
+  const H = c2w.height = 200 * devicePixelRatio;
+
+  ctx2w.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx2w.fillRect(0, 0, W, H);
+
+  const xmin = -2.2, xmax = 2.2;
+  const ymin = -1.2, ymax = 2.0;
+  const toX = v => ((v - xmin) / (xmax - xmin)) * W;
+  const toY = v => H - ((v - ymin) / (ymax - ymin)) * H;
+
+  // Axes
+  ctx2w.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx2w.lineWidth = 1;
+  ctx2w.beginPath(); ctx2w.moveTo(0, toY(0)); ctx2w.lineTo(W, toY(0)); ctx2w.stroke();
+  ctx2w.beginPath(); ctx2w.moveTo(toX(0), 0); ctx2w.lineTo(toX(0), H); ctx2w.stroke();
+
+  // Potential curve with force tilt
+  const phase = force * Math.cos(omega * dw_time * 0.05);
+  ctx2w.strokeStyle = '#00e5ff';
+  ctx2w.lineWidth = 2.5;
+  ctx2w.beginPath();
+  let first = true;
+  for (let xi = xmin; xi <= xmax; xi += 0.02) {
+    const u = U(xi) - phase * xi;
+    const px = toX(xi), py = toY(u);
+    if (py < 0 || py > H) { first = true; continue; }
+    first ? ctx2w.moveTo(px, py) : ctx2w.lineTo(px, py);
+    first = false;
+  }
+  ctx2w.stroke();
+
+  // Minima markers
+  [-1, 1].forEach(xi => {
+    ctx2w.beginPath();
+    ctx2w.arc(toX(xi), toY(U(xi) - phase * xi), 5 * devicePixelRatio, 0, Math.PI * 2);
+    ctx2w.fillStyle = 'rgba(0,229,255,0.4)';
+    ctx2w.fill();
+  });
+
+  // Particle
+  const py_particle = toY(U(dw_x) - phase * dw_x);
+  const px_particle = toX(dw_x);
+  ctx2w.beginPath();
+  ctx2w.arc(px_particle, py_particle, 8 * devicePixelRatio, 0, Math.PI * 2);
+  ctx2w.fillStyle = '#ff6b35';
+  ctx2w.shadowBlur = 15;
+  ctx2w.shadowColor = '#ff6b35';
+  ctx2w.fill();
+  ctx2w.shadowBlur = 0;
+
+  ctx2w.font = `${9 * devicePixelRatio}px Space Mono`;
+  ctx2w.fillStyle = 'rgba(0,229,255,0.6)';
+  ctx2w.fillText('U(x) = x⁴ − 2x²', 6 * devicePixelRatio, 14 * devicePixelRatio);
+}
+
+function draw_traj() {
+  const W = c2t.width = c2t.offsetWidth * devicePixelRatio;
+  const H = c2t.height = 200 * devicePixelRatio;
+
+  ctx2t.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx2t.fillRect(0, 0, W, H);
+
+  const yc = H / 2;
+  const yscale = H / 5;
+  const omega = parseFloat(document.getElementById('dw_omega').value);
+  const force = parseFloat(document.getElementById('dw_force').value);
+
+  // Force guide
+  ctx2t.strokeStyle = 'rgba(0,229,255,0.2)';
+  ctx2t.lineWidth = 1;
+  ctx2t.beginPath();
+  dw_traj.forEach((_, i) => {
+    const t = i / dw_traj.length;
+    const f = force * Math.cos(omega * dw_traj.length * t * 0.05);
+    const x = (i / dw_traj.length) * W;
+    const y = yc - f * yscale * 2;
+    i === 0 ? ctx2t.moveTo(x, y) : ctx2t.lineTo(x, y);
+  });
+  ctx2t.stroke();
+
+  // Zero line
+  ctx2t.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx2t.beginPath(); ctx2t.moveTo(0, yc); ctx2t.lineTo(W, yc); ctx2t.stroke();
+  ctx2t.strokeStyle = 'rgba(0,229,255,0.15)';
+  ctx2t.setLineDash([4, 4]);
+  [-1, 1].forEach(v => {
+    ctx2t.beginPath();
+    ctx2t.moveTo(0, yc - v * yscale);
+    ctx2t.lineTo(W, yc - v * yscale);
+    ctx2t.stroke();
+  });
+  ctx2t.setLineDash([]);
+
+  // Trajectory colored by well
+  for (let i = 1; i < dw_traj.length; i++) {
+    const x1 = ((i - 1) / dw_traj.length) * W;
+    const x2 = (i / dw_traj.length) * W;
+    const y1 = yc - dw_traj[i - 1] * yscale;
+    const y2 = yc - dw_traj[i] * yscale;
+    ctx2t.strokeStyle = dw_traj[i] < 0 ? '#7b2fff' : '#00e5ff';
+    ctx2t.lineWidth = 1.5;
+    ctx2t.beginPath();
+    ctx2t.moveTo(x1, y1);
+    ctx2t.lineTo(x2, y2);
+    ctx2t.stroke();
+  }
+
+  // Current position marker
+  if (dw_traj.length > 0) {
+    const lastX = W - 2;
+    const lastY = yc - dw_x * yscale;
+    ctx2t.beginPath();
+    ctx2t.arc(lastX, lastY, 5 * devicePixelRatio, 0, Math.PI * 2);
+    ctx2t.fillStyle = '#ff6b35';
+    ctx2t.shadowBlur = 10;
+    ctx2t.shadowColor = '#ff6b35';
+    ctx2t.fill();
+    ctx2t.shadowBlur = 0;
+  }
+}
+
+function dw_tick() {
+  const sigma = parseFloat(document.getElementById('dw_noise').value);
+  const force = parseFloat(document.getElementById('dw_force').value);
+  const omega = parseFloat(document.getElementById('dw_omega').value);
+  const gamma = parseFloat(document.getElementById('dw_damp').value);
+  const dt = 0.05;
+
+  const f_periodic = force * Math.cos(omega * dw_time * dt);
+  const drift = -dU(dw_x) - gamma * dw_v + f_periodic;
+  dw_v += drift * dt + sigma * Math.sqrt(dt) * gaussian();
+  dw_x += dw_v * dt;
+  dw_x = Math.max(-2.5, Math.min(2.5, dw_x));
+  dw_time++;
+
+  const well = dw_x < 0 ? -1 : 1;
+  if (well !== dw_prev_well && dw_prev_well !== 0) dw_trans++;
+  dw_prev_well = well;
+
+  dw_traj.push(dw_x);
+  dw_xhist.push(dw_x);
+  if (dw_traj.length > 400) dw_traj.shift();
+  if (dw_xhist.length > 2000) dw_xhist.shift();
+
+  const variance = dw_xhist.reduce((a, v) => a + v * v, 0) / dw_xhist.length;
+  const deltaU = 1.0;
+  const D = sigma * sigma / 2;
+  const kramers = D > 0 ? (1 / (2 * Math.PI)) * Math.exp(-deltaU / D) : 0;
+
+  document.getElementById('dw_well').textContent = dw_x < 0 ? '← Esq (x<0)' : '→ Dir (x>0)';
+  document.getElementById('dw_trans').textContent = dw_trans;
+  document.getElementById('dw_kramers').textContent = kramers.toExponential(2);
+  document.getElementById('dw_var').textContent = variance.toFixed(3);
+
+  draw_well();
+  draw_traj();
+  dw_raf = requestAnimationFrame(dw_tick);
+}
+
+['dw_noise','dw_force','dw_omega','dw_damp'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    document.getElementById(id + '_v').textContent = parseFloat(this.value).toFixed(2);
+    if (id === 'dw_noise' || id === 'dw_damp') { dw_x = -1; dw_v = 0; dw_traj = []; dw_trans = 0; dw_xhist = []; }
+  });
+});
+
+// =================== SIM 3: COLORED NOISE ===================
+const c3n = document.getElementById('c3noise');
+const c3p = document.getElementById('c3psd');
+const ctx3n = c3n.getContext('2d');
+const ctx3p = c3p.getContext('2d');
+
+let cn_buf = [], cn_psd = [];
+let cn_raf;
+
+const noiseNames = { '-2': 'Violeta', '-1': 'Azul', '0': 'Branco', '0.5': 'Rosa claro', '1': 'Rosa', '1.5': 'Vermelho claro', '2': 'Vermelho/Brown' };
+const noiseColors = { '-2': '#8888ff', '-1': '#54a0ff', '0': '#e0e0e0', '0.5': '#ffcc88', '1': '#ff9b54', '1.5': '#ff6666', '2': '#ff4444' };
+
+function generateColoredNoise(N, alpha, amp) {
+  const white = Array.from({ length: N }, () => gaussian() * amp);
+  if (Math.abs(alpha) < 0.05) return white;
+
+  const freq_domain = new Array(N).fill(0);
+  for (let k = 1; k < N / 2; k++) {
+    const scale = Math.pow(k, -alpha / 2);
+    freq_domain[k] = white[k] * scale;
+  }
+
+  // Simplified IFFT approximation using cumsum / differentiation
+  let result = [...white];
+  if (alpha > 0) {
+    // Integrate for red/brown noise
+    for (let i = 0; i < Math.round(alpha * 2); i++) {
+      let s = 0;
+      result = result.map(v => { s = s * 0.98 + v; return s; });
+      const rms = Math.sqrt(result.reduce((a, v) => a + v * v, 0) / N);
+      result = result.map(v => v / (rms + 0.001));
+    }
+  } else {
+    // Differentiate for blue/violet noise
+    for (let i = 0; i < Math.round(-alpha * 2); i++) {
+      result = result.map((v, j) => j === 0 ? 0 : v - result[j - 1]);
+      const rms = Math.sqrt(result.reduce((a, v) => a + v * v, 0) / N);
+      result = result.map(v => v / (rms + 0.001));
+    }
+  }
+  return result.map(v => v * amp);
+}
+
+function computePSD(signal) {
+  const N = signal.length;
+  const psd = [];
+  const nBands = 32;
+  for (let b = 0; b < nBands; b++) {
+    const f1 = Math.floor((b / nBands) * N / 2);
+    const f2 = Math.floor(((b + 1) / nBands) * N / 2);
+    let power = 0;
+    for (let k = f1; k < f2 && k < N / 2; k++) {
+      // Simple DFT for small range
+      let re = 0, im = 0;
+      for (let n = 0; n < Math.min(N, 256); n++) {
+        re += signal[n] * Math.cos(2 * Math.PI * k * n / N);
+        im -= signal[n] * Math.sin(2 * Math.PI * k * n / N);
+      }
+      power += re * re + im * im;
+    }
+    psd.push(power / (f2 - f1 + 1));
+  }
+  return psd;
+}
+
+function drawColoredNoise() {
+  const alpha = parseFloat(document.getElementById('cn_alpha').value);
+  const amp = parseFloat(document.getElementById('cn_amp').value);
+  const corr = parseInt(document.getElementById('cn_corr').value);
+
+  const N = 512;
+  const W = c3n.width = c3n.offsetWidth * devicePixelRatio;
+  const H = c3n.height = 180 * devicePixelRatio;
+  const Wp = c3p.width = c3p.offsetWidth * devicePixelRatio;
+  const Hp = c3p.height = 160 * devicePixelRatio;
+
+  cn_buf = generateColoredNoise(N, alpha, amp);
+  cn_psd = computePSD(cn_buf);
+
+  // Draw noise waveform
+  ctx3n.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx3n.fillRect(0, 0, W, H);
+
+  const yc = H / 2;
+  const yscale = H / 5;
+
+  ctx3n.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx3n.lineWidth = 1;
+  ctx3n.beginPath(); ctx3n.moveTo(0, yc); ctx3n.lineTo(W, yc); ctx3n.stroke();
+
+  const alphaKey = parseFloat(alpha.toFixed(2)).toString();
+  const col = noiseColors[Math.round(alpha).toString()] || '#00e5ff';
+
+  ctx3n.strokeStyle = col;
+  ctx3n.lineWidth = 1.5;
+  ctx3n.beginPath();
+  cn_buf.forEach((v, i) => {
+    const x = (i / N) * W;
+    const y = yc - Math.max(-3, Math.min(3, v)) * yscale;
+    i === 0 ? ctx3n.moveTo(x, y) : ctx3n.lineTo(x, y);
+  });
+  ctx3n.stroke();
+
+  // Correlation envelope
+  ctx3n.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx3n.lineWidth = 1;
+  ctx3n.setLineDash([2, 4]);
+  const envAmp = amp * (1 + alpha * 0.5);
+  ctx3n.beginPath(); ctx3n.moveTo(0, yc - envAmp * yscale * 0.8); ctx3n.lineTo(W, yc - envAmp * yscale * 0.8); ctx3n.stroke();
+  ctx3n.beginPath(); ctx3n.moveTo(0, yc + envAmp * yscale * 0.8); ctx3n.lineTo(W, yc + envAmp * yscale * 0.8); ctx3n.stroke();
+  ctx3n.setLineDash([]);
+
+  // Draw PSD
+  ctx3p.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx3p.fillRect(0, 0, Wp, Hp);
+
+  const maxPSD = Math.max(...cn_psd, 1);
+  const barW = Wp / cn_psd.length;
+
+  cn_psd.forEach((v, i) => {
+    const bh = Math.max(2, (Math.log10(v / maxPSD + 1) / Math.log10(2)) * (Hp - 30));
+    const hue = 180 + (i / cn_psd.length) * 120;
+    ctx3p.fillStyle = col;
+    ctx3p.globalAlpha = 0.3 + (v / maxPSD) * 0.7;
+    ctx3p.fillRect(i * barW + 1, Hp - bh - 20, barW - 2, bh);
+    ctx3p.globalAlpha = 1;
+  });
+
+  // 1/fα reference line
+  ctx3p.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx3p.lineWidth = 1.5;
+  ctx3p.setLineDash([4, 4]);
+  ctx3p.beginPath();
+  for (let i = 1; i < cn_psd.length; i++) {
+    const f = (i + 1);
+    const expected = (Hp - 20) * (1 - Math.pow(f, -Math.abs(alpha) * 0.5) * 0.8);
+    const x = i * barW + barW / 2;
+    i === 1 ? ctx3p.moveTo(x, expected) : ctx3p.lineTo(x, expected);
+  }
+  ctx3p.stroke();
+  ctx3p.setLineDash([]);
+
+  ctx3p.font = `${9 * devicePixelRatio}px Space Mono`;
+  ctx3p.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx3p.fillText('Densidade Espectral de Potência (PSD)', 6 * devicePixelRatio, 12 * devicePixelRatio);
+  ctx3p.fillStyle = col;
+  ctx3p.fillText('f →', Wp - 30 * devicePixelRatio, Hp - 6 * devicePixelRatio);
+
+  // Update metrics
+  const rms = Math.sqrt(cn_buf.reduce((a, v) => a + v * v, 0) / N);
+  const tau = corr * (1 + Math.abs(alpha) * 5);
+  const nameKey = Math.round(alpha).toString();
+  const typeName = noiseNames[nameKey] || (alpha < 0 ? 'Azulado' : 'Avermelhado');
+  const specExp = alpha === 0 ? 'f⁰' : alpha > 0 ? `1/f${alpha === 1 ? '' : alpha.toFixed(1)}` : `f${Math.abs(alpha) === 1 ? '' : Math.abs(alpha).toFixed(1)}`;
+
+  document.getElementById('cn_type').textContent = typeName;
+  document.getElementById('cn_spec').textContent = specExp;
+  document.getElementById('cn_rms').textContent = rms.toFixed(3);
+  document.getElementById('cn_tau').textContent = tau.toFixed(1) + ' ms';
+  document.getElementById('cn_alpha_v').textContent = alpha.toFixed(2) + ' (' + typeName + ')';
+}
+
+['cn_alpha','cn_amp','cn_corr'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    document.getElementById(id + '_v').textContent = parseFloat(this.value).toFixed(2);
+    drawColoredNoise();
+  });
+});
+
+// =================== SIM 4: SNR CURVE ===================
+const c4 = document.getElementById('c4snr');
+const ctx4 = c4.getContext('2d');
+
+function computeSNR(sigmas, amp, thresh, type) {
+  return sigmas.map(sigma => {
+    const N = 2000;
+    let sigSum = 0, noiseSum = 0, outSum = 0;
+    const freq = 1;
+    for (let i = 0; i < N; i++) {
+      const signal = amp * Math.sin(2 * Math.PI * freq * i / N);
+      const noisy = signal + sigma * gaussian();
+      let out;
+      if (type === 'threshold') out = noisy > thresh ? 1 : -1;
+      else if (type === 'tanh') out = Math.tanh((noisy - thresh) * 3);
+      else out = noisy < -1 ? -1 : noisy > 1 ? 1 : noisy * noisy * noisy - 1.5 * noisy;
+
+      sigSum += signal * out;
+      noiseSum += (out - signal) * (out - signal);
+    }
+    const snr = (sigSum / N) / (Math.sqrt(noiseSum / N) + 0.001);
+    return 20 * Math.log10(Math.abs(snr) + 0.001);
+  });
+}
+
+let snrData = null;
+
+function recomputeSNR() {
+  const amp = parseFloat(document.getElementById('snr_amp').value);
+  const thresh = parseFloat(document.getElementById('snr_thresh').value);
+  const type = document.getElementById('snr_type').value;
+  const sigmas = [];
+  for (let s = 0.05; s <= 2.5; s += 0.05) sigmas.push(s);
+  const snrs = computeSNR(sigmas, amp, thresh, type);
+  snrData = { sigmas, snrs, amp, thresh, type };
+  drawSNR();
+}
+
+function drawSNR() {
+  if (!snrData) return;
+  const { sigmas, snrs } = snrData;
+
+  const W = c4.width = c4.offsetWidth * devicePixelRatio;
+  const H = c4.height = 280 * devicePixelRatio;
+
+  ctx4.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx4.fillRect(0, 0, W, H);
+
+  const pad = { l: 50 * devicePixelRatio, r: 20 * devicePixelRatio, t: 20 * devicePixelRatio, b: 40 * devicePixelRatio };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+
+  const maxSNR = Math.max(...snrs);
+  const minSNR = Math.min(...snrs);
+  const SNRrange = maxSNR - minSNR + 1;
+  const maxSigma = sigmas[sigmas.length - 1];
+
+  const toX = s => pad.l + (s / maxSigma) * plotW;
+  const toY = v => pad.t + plotH - ((v - minSNR) / SNRrange) * plotH;
+
+  // Find optimal sigma
+  const maxIdx = snrs.indexOf(maxSNR);
+  const optSigma = sigmas[maxIdx];
+
+  // SR zone shading
+  if (maxIdx > 3) {
+    ctx4.fillStyle = 'rgba(123,47,255,0.08)';
+    ctx4.fillRect(toX(sigmas[Math.max(0, maxIdx - 5)]), pad.t, toX(sigmas[Math.min(snrs.length - 1, maxIdx + 5)]) - toX(sigmas[Math.max(0, maxIdx - 5)]), plotH);
+  }
+
+  // Grid
+  ctx4.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx4.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.t + (i / 5) * plotH;
+    ctx4.beginPath(); ctx4.moveTo(pad.l, y); ctx4.lineTo(W - pad.r, y); ctx4.stroke();
+    const v = maxSNR - (i / 5) * SNRrange;
+    ctx4.font = `${9 * devicePixelRatio}px Space Mono`;
+    ctx4.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx4.fillText(v.toFixed(0), 2, y + 3 * devicePixelRatio);
+  }
+  for (let i = 0; i <= 5; i++) {
+    const x = pad.l + (i / 5) * plotW;
+    const s = (i / 5) * maxSigma;
+    ctx4.beginPath(); ctx4.moveTo(x, pad.t); ctx4.lineTo(x, H - pad.b); ctx4.stroke();
+    ctx4.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx4.fillText(s.toFixed(1), x - 10 * devicePixelRatio, H - pad.b + 12 * devicePixelRatio);
+  }
+
+  // Axes labels
+  ctx4.fillStyle = 'rgba(0,229,255,0.6)';
+  ctx4.font = `${10 * devicePixelRatio}px Space Mono`;
+  ctx4.fillText('SNR (dB)', 2, pad.t + plotH / 2);
+  ctx4.fillText('Intensidade do Ruído σ', pad.l + plotW / 2 - 60 * devicePixelRatio, H - 4 * devicePixelRatio);
+
+  // Optimal sigma line
+  ctx4.strokeStyle = '#ff6b35';
+  ctx4.lineWidth = 1.5;
+  ctx4.setLineDash([6, 4]);
+  ctx4.beginPath();
+  ctx4.moveTo(toX(optSigma), pad.t);
+  ctx4.lineTo(toX(optSigma), H - pad.b);
+  ctx4.stroke();
+  ctx4.setLineDash([]);
+
+  // SNR curve
+  ctx4.strokeStyle = '#00e5ff';
+  ctx4.lineWidth = 2.5;
+  ctx4.beginPath();
+  snrs.forEach((v, i) => {
+    const x = toX(sigmas[i]);
+    const y = toY(v);
+    i === 0 ? ctx4.moveTo(x, y) : ctx4.lineTo(x, y);
+  });
+  ctx4.stroke();
+
+  // Peak marker
+  ctx4.beginPath();
+  ctx4.arc(toX(optSigma), toY(maxSNR), 7 * devicePixelRatio, 0, Math.PI * 2);
+  ctx4.fillStyle = '#ff6b35';
+  ctx4.shadowBlur = 12;
+  ctx4.shadowColor = '#ff6b35';
+  ctx4.fill();
+  ctx4.shadowBlur = 0;
+
+  ctx4.font = `${10 * devicePixelRatio}px Space Mono`;
+  ctx4.fillStyle = '#ff6b35';
+  ctx4.fillText('σ* = ' + optSigma.toFixed(2), toX(optSigma) + 10 * devicePixelRatio, toY(maxSNR) - 8 * devicePixelRatio);
+
+  // Metrics
+  const baselineSNR = snrs[0];
+  const gain = maxSNR - baselineSNR;
+  document.getElementById('snr_opt').textContent = optSigma.toFixed(3);
+  document.getElementById('snr_max').textContent = maxSNR.toFixed(1) + ' dB';
+  document.getElementById('snr_gain').textContent = '+' + gain.toFixed(1) + ' dB';
+}
+
+['snr_amp','snr_thresh'].forEach(id => {
+  document.getElementById(id).addEventListener('input', function() {
+    document.getElementById(id + '_v').textContent = parseFloat(this.value).toFixed(2);
+  });
+});
+
+// =================== INIT ===================
+window.addEventListener('load', () => {
+  resizeSR();
+  sr_tick();
+  dw_tick();
+  drawColoredNoise();
+  recomputeSNR();
+});
+
+window.addEventListener('resize', () => {
+  resizeSR();
+  drawColoredNoise();
+  drawSNR();
+});
+</script>
+</body>
+</html>
