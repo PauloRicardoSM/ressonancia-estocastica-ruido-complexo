@@ -387,10 +387,10 @@
   <h1>Ressonância Estocástica & Ruído Complexo</h1>
   <p class="hero-sub">Explore como o ruído aleatório pode paradoxalmente amplificar sinais fracos e otimizar sistemas dinâmicos não-lineares</p>
   <div class="nav-pills">
-    <div class="pill active" onclick="scrollTo(0)">Ressonância SR</div>
-    <div class="pill" onclick="scrollTo(1)">Poço Duplo</div>
-    <div class="pill" onclick="scrollTo(2)">Ruído Colorido</div>
-    <div class="pill" onclick="scrollTo(3)">SNR Ótimo</div>
+    <div class="pill active" onclick="scrollToSim(0)">Ressonância SR</div>
+    <div class="pill" onclick="scrollToSim(1)">Poço Duplo</div>
+    <div class="pill" onclick="scrollToSim(2)">Ruído Colorido</div>
+    <div class="pill" onclick="scrollToSim(3)">SNR Ótimo</div>
   </div>
 </div>
 
@@ -663,7 +663,7 @@ function gaussian() {
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-const scrollTo = (i) => {
+const scrollToSim = (i) => {
   document.getElementById('sim' + i).scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
